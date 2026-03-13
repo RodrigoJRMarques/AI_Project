@@ -1,0 +1,22 @@
+# ─────────────────────────────────────────────────────────────
+# Trabalho Prático Final – Métodos de Procura, OCR e LLM
+# ─────────────────────────────────────────────────────────────
+
+# Interface colorida (recomendado)
+rich>=13.0.0
+
+# OCR – escolha uma das seguintes opções:
+
+# Opção A: easyocr (instala automaticamente, sem dependências de sistema)
+easyocr>=1.7.0
+
+# Opção B: pytesseract + Pillow  (requer Tesseract-OCR instalado no sistema)
+#   Windows: https://github.com/UB-Mannheim/tesseract/wiki
+#   Linux:   sudo apt install tesseract-ocr
+# pytesseract>=0.3.10
+# Pillow>=10.0.0
+
+# LLM – Ollama (servidor local, não é um pacote Python)
+#   Instalar: https://ollama.com
+#   Transferir modelo: ollama pull llama3.2
+#   (não precisa de ser listado aqui – comunicação via HTTP)
