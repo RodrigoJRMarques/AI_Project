@@ -60,7 +60,7 @@
                     {% endfor %}
                 </fieldset>
 
-                <div class="field depth-field">
+                <div class="field depth-field {% if selected.get('algorithm', 'ucs') != 'dls' %}is-hidden{% endif %}" data-depth-field>
                     <label for="max_depth">Limite de profundidade</label>
                     <input id="max_depth" name="max_depth" type="number" min="1" max="30" value="{{ selected.get('max_depth', '10') }}">
                 </div>
@@ -169,5 +169,22 @@
             </section>
         {% endif %}
     </main>
+    <script>
+        const algorithmInputs = document.querySelectorAll('input[name="algorithm"]');
+        const depthField = document.querySelector('[data-depth-field]');
+        const depthInput = document.querySelector('#max_depth');
+
+        function updateDepthVisibility() {
+            const selectedAlgorithm = document.querySelector('input[name="algorithm"]:checked');
+            const showDepth = selectedAlgorithm && selectedAlgorithm.value === 'dls';
+            depthField.classList.toggle('is-hidden', !showDepth);
+            depthInput.disabled = !showDepth;
+        }
+
+        algorithmInputs.forEach((input) => {
+            input.addEventListener('change', updateDepthVisibility);
+        });
+        updateDepthVisibility();
+    </script>
 </body>
 </html>
