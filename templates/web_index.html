@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Smart Delivery AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/web.css') }}">
+</head>
+<body>
+    <main class="page-shell">
+        <section class="workbench" aria-labelledby="page-title">
+            <div class="intro">
+                <p class="eyebrow">Métodos de Procura · OCR · LLM</p>
+                <h1 id="page-title">Planeamento de rota</h1>
+                <p>Submete a matrícula, escolhe duas cidades e compara o caminho calculado pelo método selecionado.</p>
+            </div>
+
+            <div class="visual-panel">
+                <img src="{{ url_for('static', filename='images/truck.jpeg') }}" alt="Camião de entrega em estrada">
+            </div>
+
+            <form class="route-form" method="post" enctype="multipart/form-data">
+                <div class="field wide">
+                    <label for="plate_image">Imagem da matrícula</label>
+                    <input id="plate_image" name="plate_image" type="file" accept="image/*" required>
+                </div>
+
+                <div class="field">
+                    <label for="manual_plate">Matrícula manual de apoio</label>
+                    <input id="manual_plate" name="manual_plate" type="text" placeholder="Ex: 16-VG-11" value="{{ selected.get('manual_plate', '') }}">
+                </div>
+
+                <div class="field">
+                    <label for="start">Origem</label>
+                    <select id="start" name="start" required>
+                        <option value="">Escolher cidade</option>
+                        {% for city in cities %}
+                            <option value="{{ city }}" {% if selected.get('start') == city %}selected{% endif %}>{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="goal">Destino</label>
+                    <select id="goal" name="goal" required>
+                        <option value="">Escolher cidade</option>
+                        {% for city in cities %}
+                            <option value="{{ city }}" {% if selected.get('goal') == city %}selected{% endif %}>{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <fieldset class="algorithm-group">
+                    <legend>Método de procura</legend>
+                    {% for key, label in algorithms.items() %}
+                        <label class="radio-tile">
+                            <input type="radio" name="algorithm" value="{{ key }}" {% if selected.get('algorithm', 'ucs') == key %}checked{% endif %}>
+                            <span>{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                </fieldset>
+
+                <div class="field depth-field">
+                    <label for="max_depth">Limite de profundidade</label>
+                    <input id="max_depth" name="max_depth" type="number" min="1" max="30" value="{{ selected.get('max_depth', '10') }}">
+                </div>
+
+                <button class="submit-button" type="submit">Calcular rota</button>
+            </form>
+        </section>
+
+        {% if error %}
+            <section class="notice error" role="alert">
+                <strong>Atenção:</strong> {{ error }}
+            </section>
+        {% endif %}
+
+        {% if result %}
+            <section class="result-grid" aria-label="Resultado da pesquisa">
+                <div class="summary-panel">
+                    <p class="eyebrow">Sessão OCR</p>
+                    <h2>{{ result.plate }}</h2>
+                    <dl>
+                        <div>
+                            <dt>Origem da matrícula</dt>
+                            <dd>{{ result.plate_source }}</dd>
+                        </div>
+                        <div>
+                            <dt>Algoritmo</dt>
+                            <dd>{{ result.algorithm }}</dd>
+                        </div>
+                        <div>
+                            <dt>Origem</dt>
+                            <dd>{{ result.start }}</dd>
+                        </div>
+                        <div>
+                            <dt>Destino</dt>
+                            <dd>{{ result.goal }}</dd>
+                        </div>
+                        <div>
+                            <dt>Distância final</dt>
+                            <dd>{{ result.cost }} km</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div class="path-panel">
+                    <p class="eyebrow">Caminho final</p>
+                    {% if result.path %}
+                        <ol class="path-list">
+                            {% for city in result.path %}
+                                <li>{{ city }}</li>
+                            {% endfor %}
+                        </ol>
+                    {% else %}
+                        <p>Não foi encontrado caminho para esta pesquisa.</p>
+                    {% endif %}
+                </div>
+
+                <div class="iterations-panel">
+                    <div class="panel-heading">
+                        <p class="eyebrow">Iterações</p>
+                        <h2>Valores por passo</h2>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Passo</th>
+                                    <th>Cidade</th>
+                                    <th>Prof.</th>
+                                    <th>g(n)</th>
+                                    <th>h(n)</th>
+                                    <th>f(n)</th>
+                                    <th>Caminho parcial</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in result.iterations %}
+                                    <tr>
+                                        <td>{{ item.step }}</td>
+                                        <td>{{ item.node }}</td>
+                                        <td>{{ item.depth }}</td>
+                                        <td>{{ item.g }}</td>
+                                        <td>{{ item.h }}</td>
+                                        <td>{{ item.f }}</td>
+                                        <td>{{ item.path | join(' → ') }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="attractions-panel">
+                    <div class="panel-heading">
+                        <p class="eyebrow">LLM local</p>
+                        <h2>Atrações das cidades do caminho</h2>
+                    </div>
+                    <div class="attraction-list">
+                        {% for city, text in result.attractions.items() %}
+                            <article>
+                                <h3>{{ city }}</h3>
+                                <p>{{ text.replace('\n', '<br>') | safe }}</p>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+    </main>
+</body>
+</html>

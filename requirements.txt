@@ -5,10 +5,15 @@
 # Interface colorida (recomendado)
 rich>=13.0.0
 
+# Interface web
+Flask>=3.0.0
+
 # OCR – escolha uma das seguintes opções:
 
 # Opção A: easyocr (instala automaticamente, sem dependências de sistema)
 easyocr>=1.7.0
+Pillow>=10.0.0
+ultralytics>=8.3.0
 
 # Opção B: pytesseract + Pillow  (requer Tesseract-OCR instalado no sistema)
 #   Windows: https://github.com/UB-Mannheim/tesseract/wiki

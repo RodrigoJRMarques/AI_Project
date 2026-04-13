@@ -68,6 +68,8 @@ Se preferir pytesseract em vez de easyocr, instale o Tesseract-OCR:
 
 ## Utilização
 
+### Interface em consola
+
 ```bash
 python main.py
 ```
@@ -78,6 +80,22 @@ Fluxo:
 3. **Destino** – escolhe cidade de chegada
 4. **Algoritmo** – seleciona UCS, DLS, Greedy ou A*
 5. **Resultados** – tabela de iterações + caminho final + atrações (LLM)
+
+### Interface web
+
+```bash
+python web_app.py
+```
+
+Depois abre:
+
+```text
+http://127.0.0.1:5000
+```
+
+A página web permite submeter a imagem da matrícula, selecionar origem, destino
+e algoritmo, e consultar o caminho final, a distância total, as iterações e as
+atrações devolvidas pelo LLM local.
 
 ---
 
