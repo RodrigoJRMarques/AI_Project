@@ -8,6 +8,7 @@ Para transferir um modelo:  ollama pull llama3.2
 """
 
 import json
+import re
 import urllib.request
 import urllib.error
 from typing import Optional
@@ -71,15 +72,26 @@ def get_city_attractions(city: str, model: str = DEFAULT_MODEL) -> str:
         return _fallback(city)
 
     model = _best_model(model)
+    known_attractions = _fallback(city)
     prompt = (
-        f"Indica as 3 principais atrações turísticas de {city}, Portugal. "
-        "Responde em português, com uma lista numerada e uma frase curta por atração."
+        f"Reescreve as 3 atrações turísticas validadas de {city}, Portugal.\n"
+        "Usa exclusivamente estes nomes de atrações, sem trocar nem acrescentar locais:\n"
+        f"{known_attractions}\n\n"
+        "Responde apenas com uma lista numerada de 1 a 3.\n"
+        "Não escrevas introduções como 'Claro' ou 'Aqui estão'.\n"
+        "Não escrevas conclusões.\n"
+        "Não uses Markdown ou asteriscos.\n"
+        "Mantém os nomes das atrações da lista validada.\n"
+        "Formato obrigatório:\n"
+        "1. Nome da atração - frase curta.\n"
+        "2. Nome da atração - frase curta.\n"
+        "3. Nome da atração - frase curta."
     )
     payload = json.dumps({
         "model": model,
         "prompt": prompt,
         "stream": False,
-        "options": {"temperature": 0.3, "num_predict": 250},
+        "options": {"temperature": 0.1, "num_predict": 180},
     }).encode("utf-8")
 
     req = urllib.request.Request(
@@ -91,9 +103,49 @@ def get_city_attractions(city: str, model: str = DEFAULT_MODEL) -> str:
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             data = json.loads(r.read().decode())
-            return data.get("response", _fallback(city)).strip()
+            response = data.get("response", "").strip()
+            return _clean_attractions_response(response, city)
     except Exception:
         return _fallback(city)
+
+
+def _clean_attractions_response(response: str, city: str) -> str:
+    """Remove conversa de chat/Markdown e deixa só a lista numerada."""
+    text = response.strip()
+    if not text:
+        return _fallback(city)
+
+    text = text.replace("**", "")
+    match = re.search(
+        r"(?ms)^\s*1[\).]\s*(.*?)\s*^\s*2[\).]\s*(.*?)\s*^\s*3[\).]\s*(.*?)(?=^\s*(?:4[\).]|[A-ZÁÉÍÓÚÂÊÔÃÕÇ]|$))",
+        text,
+    )
+    if match:
+        return "\n".join(
+            f"{index}. {_compact_attraction_line(part)}"
+            for index, part in enumerate(match.groups(), start=1)
+        )
+
+    lines = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        match = re.match(r"^([1-3])[\).]\s*(.+)$", line)
+        if match:
+            lines.append(f"{match.group(1)}. {_compact_attraction_line(match.group(2))}")
+
+    return "\n".join(lines[:3]) if len(lines) >= 3 else _fallback(city)
+
+
+def _compact_attraction_line(text: str) -> str:
+    """Compacta uma atração para uma única linha limpa."""
+    line = re.sub(r"\s+", " ", text).strip()
+    line = re.split(
+        r"\s+(?:Claro|Aqui est|Essas tr|Estas tr|Espero que|Nota:)\b",
+        line,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip()
+    return line.rstrip(" .") + "."
 
 
 # ---------------------------------------------------------------------------
